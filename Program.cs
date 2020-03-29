@@ -28,17 +28,21 @@ static class Program {
         p.WaitForExit();
     }
 
+    const string
+        absDrive = ":\\",
+        mntPath = "/mnt/";
+
     static void PathToWsl(string str, StringBuilder builder) {
-        var index = str.IndexOf(@":\");
+        var index = str.IndexOf(absDrive);
         if(index > 0) {
             // Convert absolute path
             var driveIndex = index - 1;
             builder.Append('\'');
             builder.Append(str, 0, driveIndex);
-            builder.Append("/mnt/");
+            builder.Append(mntPath);
             builder.Append(char.ToLowerInvariant(str[driveIndex]));
             builder.Append('/');
-            var pathIndex = index + 2;
+            var pathIndex = index + absDrive.Length;
             if(str.Length > pathIndex) {
                 var len = builder.Length;
                 var count = str.Length - pathIndex;
@@ -60,30 +64,20 @@ static class Program {
     }
 
     static string PathFromWsl(string str) {
-        var index = str.IndexOf("/mnt/");
-        if(index > -1) {
-            // Convert absolute path
-            var builder = new StringBuilder(str.Length);
-            builder.Append(str, 0, index);
-            builder.Append(char.ToUpperInvariant(str[index + 5]));
-            builder.Append(@":\");
-            var pathIndex = index + 7;
-            if(str.Length > pathIndex) {
-                var len = builder.Length;
-                var count = str.Length - pathIndex;
-                builder.Append(str, pathIndex, count);
-                builder.Replace('/', '\\', len, count);
-            }
-            return builder.ToString();
-        } else if(str.IndexOf('/') > -1) {
-            // Convert relative path
-            var builder = new StringBuilder();
-            builder.Append(str);
-            builder.Replace('/', '\\');
-            return builder.ToString();
-        } else {
-            // As is
+        if(!str.StartsWith(mntPath))
             return str;
+
+        // Convert WSL path
+        var builder = new StringBuilder(str.Length);
+        builder.Append(char.ToUpperInvariant(str[mntPath.Length]));
+        builder.Append(absDrive);
+        var pathIndex = mntPath.Length + 2;
+        if(str.Length > pathIndex) {
+            var len = builder.Length;
+            var count = str.Length - pathIndex;
+            builder.Append(str, pathIndex, count);
+            builder.Replace('/', '\\', len, count);
         }
+        return builder.ToString();
     }
 }
