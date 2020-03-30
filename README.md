@@ -1,8 +1,10 @@
 # WSL Shortcut
 
-The program allows you to run **WSL** commands directly in Windows.
+Run **WSL** commands directly in Windows.
 
-This is useful when you want to use **WSL** commands from **cmd** or use **WSL** `git`/`node` in **Visual Studio Code**.
+Also allows to use **WSL** `git`/`node`/etc. in **Visual Studio Code** or another software.
+
+Combines functionality of utilites like [`wslgit`](//github.com/andy-5/wslgit), [`wslnode`](//github.com/int128/wslexec), [`wslexec`](//github.com/snooopcatt/wslnodejs) etc. with simpler usage.
 
 ### [Releases](../../releases)
 
@@ -10,4 +12,4 @@ This is useful when you want to use **WSL** commands from **cmd** or use **WSL**
 
 - Rename `WslShortcut.exe` to desired command name, e.g. `git.exe`, `node.exe`, `ls.exe` etc. You can make a renamed copy for every command you want.
 - Place this executable(s) to some **PATH** directory (`Windows`, `System32` or make your own).
-- Now you can use it directly in **cmd** (e.g. `git status`, `node -v`, `ls -la`), **VS Code** should find `git`/`node` automatically.
+- Now you can run it directly in **cmd** (e.g. `git status`, `node -v`, `ls -la`), **VS Code** should find `git`/`node` automatically.
