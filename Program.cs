@@ -10,7 +10,8 @@ static class Program {
         // Build command line
         foreach(var str in args) {
             builder.Append(' ');
-            PathToWsl(str, builder);
+            if(!PathToWsl(str, builder))
+                builder.Append(str, 0, str.Length);
         }
 
         // Run WSL command
@@ -28,39 +29,48 @@ static class Program {
         p.WaitForExit();
     }
 
-    const string
-        absDrive = ":\\",
-        mntPath = "/mnt/";
+    const string mntPath = "/mnt/";
 
-    static void PathToWsl(string str, StringBuilder builder) {
-        var index = str.IndexOf(absDrive);
-        if(index > 0) {
-            // Convert absolute path
-            var driveIndex = index - 1;
-            builder.Append('\'');
-            builder.Append(str, 0, driveIndex);
+    static bool PathToWsl(string str, StringBuilder builder) {
+        // Detect absolute path
+        if(str.Length < 2)
+            return false;
+
+        if(str[1] != ':')
+            return false;
+
+        var chr = str[0];
+        if(!(/* A-Z */ (chr >= 65 && chr <= 90) || /* a-z */ (chr >= 97 && chr <= 122)))
+            return false;
+
+        if(str.Length == 2) {
+            // Drive only
             builder.Append(mntPath);
-            builder.Append(char.ToLowerInvariant(str[driveIndex]));
-            builder.Append('/');
-            var pathIndex = index + absDrive.Length;
-            if(str.Length > pathIndex) {
-                var len = builder.Length;
-                var count = str.Length - pathIndex;
-                builder.Append(str, pathIndex, count);
-                builder.Replace('\\', '/', len, count);
-            }
-            builder.Append('\'');
-        } else if(str.IndexOf('\\') > -1) {
-            // Convert relative path
-            builder.Append('\'');
-            var len = builder.Length;
-            builder.Append(str);
-            builder.Replace('\\', '/', len, str.Length);
-            builder.Append('\'');
-        } else {
-            // As is
-            builder.Append(str, 0, str.Length);
+            builder.Append(char.ToLowerInvariant(chr));
+            return true;
         }
+
+        chr = str[2];
+        if((str.Length > 2) && (chr != '\\') && (chr != '/'))
+            return false;
+
+        // Absolute path
+        builder.Append('\'');
+
+        builder.Append(mntPath);
+        builder.Append(char.ToLowerInvariant(chr));
+        builder.Append('/');
+
+        if(str.Length > 3) {
+            var len = builder.Length;
+            var count = str.Length - 3;
+            builder.Append(str, 3, count);
+            builder.Replace('\\', '/', len, count);
+        }
+
+        builder.Append('\'');
+
+        return true;
     }
 
     static string PathFromWsl(string str) {
@@ -70,7 +80,8 @@ static class Program {
         // Convert WSL path
         var builder = new StringBuilder(str.Length);
         builder.Append(char.ToUpperInvariant(str[mntPath.Length]));
-        builder.Append(absDrive);
+        builder.Append(":\\");
+
         var pathIndex = mntPath.Length + 2;
         if(str.Length > pathIndex) {
             var len = builder.Length;
@@ -78,6 +89,7 @@ static class Program {
             builder.Append(str, pathIndex, count);
             builder.Replace('/', '\\', len, count);
         }
+
         return builder.ToString();
     }
 }
