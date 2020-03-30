@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 static class Program {
@@ -39,50 +40,54 @@ static class Program {
         if(str[1] != ':')
             return false;
 
-        var chr = str[0];
-        if(!(/* A-Z */ (chr >= 65 && chr <= 90) || /* a-z */ (chr >= 97 && chr <= 122)))
+        var drive = str[0];
+        if(!CheckDriveLetter(drive, true, true))
             return false;
 
-        if(str.Length == 2) {
+        if(str.Length > 2) {
+            // Absolute path
+            var chr = str[2];
+            if(!((chr == '\\') || (chr == '/')))
+                return false;
+
+            builder.Append('\'');
+
+            builder.Append(mntPath);
+            builder.Append(ToLower(drive));
+
+            var len = builder.Length;
+            var count = str.Length - 2;
+            builder.Append(str, 2, count);
+            builder.Replace('\\', '/', len, count);
+
+            builder.Append('\'');
+        } else {
             // Drive only
             builder.Append(mntPath);
-            builder.Append(char.ToLowerInvariant(chr));
-            return true;
+            builder.Append(ToLower(drive));
         }
-
-        chr = str[2];
-        if((str.Length > 2) && (chr != '\\') && (chr != '/'))
-            return false;
-
-        // Absolute path
-        builder.Append('\'');
-
-        builder.Append(mntPath);
-        builder.Append(char.ToLowerInvariant(chr));
-        builder.Append('/');
-
-        if(str.Length > 3) {
-            var len = builder.Length;
-            var count = str.Length - 3;
-            builder.Append(str, 3, count);
-            builder.Replace('\\', '/', len, count);
-        }
-
-        builder.Append('\'');
 
         return true;
     }
 
     static string PathFromWsl(string str) {
-        if(!str.StartsWith(mntPath))
+        // Detect WSL mounted path
+        if(!((str.Length > mntPath.Length) && str.StartsWith(mntPath)))
+            return str;
+
+        var pathIndex = mntPath.Length + 1;
+        if((str.Length > pathIndex) && (str[pathIndex] != '/'))
+            return str;
+
+        var drive = str[mntPath.Length];
+        if(!CheckDriveLetter(drive, false, true))
             return str;
 
         // Convert WSL path
         var builder = new StringBuilder(str.Length);
-        builder.Append(char.ToUpperInvariant(str[mntPath.Length]));
-        builder.Append(":\\");
+        builder.Append(ToUpper(drive));
+        builder.Append(':');
 
-        var pathIndex = mntPath.Length + 2;
         if(str.Length > pathIndex) {
             var len = builder.Length;
             var count = str.Length - pathIndex;
@@ -92,4 +97,15 @@ static class Program {
 
         return builder.ToString();
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static bool CheckDriveLetter(char chr, bool upper, bool lower) =>
+        (upper && (chr >= 'A') && (chr <= 'Z')) ||
+        (lower && (chr >= 'a') && (chr <= 'z'));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static char ToUpper(char chr) => (char)(chr & -33);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static char ToLower(char chr) => (char)(chr | 32);
 }
