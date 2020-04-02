@@ -4,7 +4,7 @@ Run **WSL** commands directly in Windows.
 
 Also allows to use **WSL** `git`/`node`/etc. in **Visual Studio Code** or another software.
 
-Combines functionality of utilites like [`wslgit`](//github.com/andy-5/wslgit), [`wslnode`](//github.com/int128/wslexec), [`wslexec`](//github.com/snooopcatt/wslnodejs) etc. with simpler usage.
+Combines functionality of utilities like [`wslgit`](//github.com/andy-5/wslgit), [`wslnodejs`](//github.com/snooopcatt/wslnodejs), [`wslexec`](//github.com/int128/wslexec) etc. with simpler usage.
 
 ### [Releases](../../releases)
 
