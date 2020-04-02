@@ -41,7 +41,10 @@ static class Program {
         });
 
         // Convert paths in output
-        while(!p.StandardOutput.EndOfStream)
-            Console.WriteLine(WslPath.PathFromWsl(p.StandardOutput.ReadLine()));
+        var input = p.StandardOutput;
+        while(!input.EndOfStream) {
+            Console.Write(WslPath.PathFromWsl(input.ReadLine()));
+            Console.Write('\n');
+        }
     }
 }
