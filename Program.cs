@@ -44,8 +44,9 @@ static class Program {
 
         // Convert paths in output
         var input = p.StandardOutput;
-        while(!input.EndOfStream) {
-            Console.Write(WslPath.PathFromWsl(input.ReadLine()));
+        string line;
+        while(!((line = input.ReadLine()) is null)) {
+            Console.Write(WslPath.PathFromWsl(line));
             Console.Write('\n');
         }
     }
