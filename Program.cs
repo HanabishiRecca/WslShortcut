@@ -4,6 +4,8 @@ using System.Text;
 
 static class Program {
     static void Main() {
+        Console.InputEncoding = Console.OutputEncoding = Encoding.UTF8;
+
         var cmd = Environment.CommandLine;
 
         // Extract command name
