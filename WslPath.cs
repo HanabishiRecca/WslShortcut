@@ -40,7 +40,8 @@ static class WslPath {
         return true;
     }
 
-    const int BufferSize = 4096;
+    // Set buffer to 512K as temporal workaround of https://github.com/microsoft/WSL/issues/5063
+    const int BufferSize = 512 * 1024;
 
     public unsafe static void ProcessOutput(IntPtr input, IntPtr output) {
         // Dangerous zone
