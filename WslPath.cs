@@ -40,32 +40,53 @@ static class WslPath {
         return true;
     }
 
-    public static string PathFromWsl(string str) {
-        // Detect WSL mounted path
-        if(!((str.Length > mntPath.Length) && str.StartsWith(mntPath, StringComparison.Ordinal)))
-            return str;
+    const int BufferSize = 4096;
 
-        var pathIndex = mntPath.Length + 1;
-        if((str.Length > pathIndex) && (str[pathIndex] != '/'))
-            return str;
+    public unsafe static void ProcessOutput(IntPtr input, IntPtr output) {
+        // Dangerous zone
+        var buffer = stackalloc byte[BufferSize];
 
-        var drive = str[mntPath.Length];
-        if(!CheckDriveLetter(drive, false, true))
-            return str;
+        // First read is explicit to detect possible path output
+        if(!(Win32.ReadFile(input, buffer, BufferSize, out var count, null) && (count > 0)))
+            return;
 
-        // Convert WSL path
-        var builder = new StringBuilder(str.Length);
-        builder.Append(ToUpper(drive));
-        builder.Append(':');
+        var mntLen = mntPath.Length;
+        var checkLen = mntLen + 1;
+        char drive;
 
-        if(str.Length > pathIndex) {
-            var len = builder.Length;
-            var count = str.Length - pathIndex;
-            builder.Append(str, pathIndex, count);
-            builder.Replace('/', '\\', len, count);
+        // Detect plain path
+        if((count >= checkLen) && CheckMntPath(buffer) && CheckDriveLetter(drive = (char)buffer[mntLen], false, true)) {
+            // Very weird way to write 2 bytes
+            short s;
+            var sp = (byte*)&s;
+            sp[0] = (byte)ToUpper(drive);
+            sp[1] = (byte)':';
+            Win32.WriteFile(output, sp, 2, null, null);
+
+            if(count > checkLen) {
+                // Seek for EOL and replace slashes along the way
+                byte b;
+                for(int i = checkLen; (i < count) && ((b = buffer[i]) != '\n'); i++)
+                    if(b == '/')
+                        buffer[i] = (byte)'\\';
+
+                // Write remaining path
+                Win32.WriteFile(output, buffer + checkLen, count - checkLen, null, null);
+            }
+        } else {
+            Win32.WriteFile(output, buffer, count, null, null);
         }
 
-        return builder.ToString();
+        // Pump all the rest output
+        while(Win32.ReadFile(input, buffer, BufferSize, out count, null) && (count > 0))
+            Win32.WriteFile(output, buffer, count, null, null);
+    }
+
+    unsafe static bool CheckMntPath(byte* p) {
+        for(int i = 0; i < mntPath.Length; i++)
+            if(p[i] != mntPath[i])
+                return false;
+        return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

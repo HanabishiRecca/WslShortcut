@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Text;
 
 static class Program {
@@ -18,6 +17,7 @@ static class Program {
             return;
 
         var builder = new StringBuilder(cmd.Length);
+        builder.Append("wsl.exe ");
         builder.Append(cmd, command.start, command.length);
 
         // Extract arguments and convert paths
@@ -34,20 +34,49 @@ static class Program {
                 builder.Append('"');
         }
 
-        // Run WSL command
-        var p = Process.Start(new ProcessStartInfo {
-            FileName = "wsl.exe",
-            Arguments = builder.ToString(),
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-        });
+        // Create pipe
+        var pipe = CreatePipe();
+        if(!pipe.ok)
+            throw new Exception("Failed to create pipe.");
 
-        // Convert paths in output
-        var input = p.StandardOutput;
-        string line;
-        while(!((line = input.ReadLine()) is null)) {
-            Console.Write(WslPath.PathFromWsl(line));
-            Console.Write('\n');
+        // Do not inherit reading end of pipe
+        if(!Win32.SetHandleInformation(pipe.hRead, 1, 0))
+            throw new Exception("Failed to set up pipe.");
+
+        // Run WSL command
+        if(!CreateProcess(builder.ToString(), pipe.hWrite))
+            throw new Exception("Failed to launch WSL.");
+
+        // Close own writing end of pipe to avoid ReadFile self locking
+        if(!Win32.CloseHandle(pipe.hWrite))
+            throw new Exception("Failed to close own writing handle.");
+
+        WslPath.ProcessOutput(pipe.hRead, Win32.GetStdHandle(-11));
+    }
+
+    public unsafe static (bool ok, IntPtr hRead, IntPtr hWrite) CreatePipe() {
+        var secAttrs = new Win32.SECURITY_ATTRIBUTES {
+            nLength = sizeof(Win32.SECURITY_ATTRIBUTES),
+            bInheritHandle = true,
+        };
+        return (Win32.CreatePipe(out var hReadPipe, out var hWritePipe, secAttrs, 0), hReadPipe, hWritePipe);
+    }
+
+    public unsafe static bool CreateProcess(string commandLine, IntPtr hWritePipe) {
+        var startupInfo = new Win32.STARTUPINFO {
+            cb = sizeof(Win32.STARTUPINFO),
+            hStdInput = Win32.GetStdHandle(-10),
+            hStdOutput = hWritePipe,
+            hStdError = hWritePipe,
+            dwFlags = 0x100,
+        };
+
+        var result = Win32.CreateProcessW(null, commandLine, null, null, true, 0, null, null, startupInfo, out var procInfo);
+        if(result) {
+            Win32.CloseHandle(procInfo.hThread);
+            Win32.CloseHandle(procInfo.hProcess);
         }
+
+        return result;
     }
 }
