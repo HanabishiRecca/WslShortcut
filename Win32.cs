@@ -25,6 +25,12 @@ static class Win32 {
     [DllImport(kernel32, SetLastError = true)]
     public unsafe static extern bool WriteFile(IntPtr hFile, byte* lpBuffer, int nNumberOfBytesToWrite, int* lpNumberOfBytesWritten, void* lpOverlapped);
 
+    [DllImport(kernel32, SetLastError = true)]
+    public static extern bool SetConsoleCP(uint wCodePageID);
+
+    [DllImport(kernel32, SetLastError = true)]
+    public static extern bool SetConsoleOutputCP(uint wCodePageID);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct SECURITY_ATTRIBUTES {
         public int nLength;

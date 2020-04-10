@@ -3,7 +3,8 @@ using System.Text;
 
 static class Program {
     static void Main() {
-        Console.InputEncoding = Console.OutputEncoding = Encoding.UTF8;
+        Win32.SetConsoleCP(65001);
+        Win32.SetConsoleOutputCP(65001);
 
         var cmd = Environment.CommandLine;
 
