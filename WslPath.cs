@@ -40,15 +40,12 @@ static class WslPath {
         return true;
     }
 
-    // Set buffer to 512K as temporal workaround of https://github.com/microsoft/WSL/issues/5063
-    const int BufferSize = 512 * 1024;
-
     public unsafe static void ProcessOutput(IntPtr input, IntPtr output) {
         // Dangerous zone
-        var buffer = stackalloc byte[BufferSize];
+        var buffer = stackalloc byte[Program.BufferSize];
 
         // First read is explicit to detect possible path output
-        if(!(Win32.ReadFile(input, buffer, BufferSize, out var count, null) && (count > 0)))
+        if(!(Win32.ReadFile(input, buffer, Program.BufferSize, out var count, null) && (count > 0)))
             return;
 
         var mntLen = mntPath.Length;
@@ -79,7 +76,7 @@ static class WslPath {
         }
 
         // Pump all the rest output
-        while(Win32.ReadFile(input, buffer, BufferSize, out count, null) && (count > 0))
+        while(Win32.ReadFile(input, buffer, Program.BufferSize, out count, null) && (count > 0))
             Win32.WriteFile(output, buffer, count, null, null);
     }
 

@@ -2,6 +2,9 @@
 using System.Text;
 
 static class Program {
+    // Set buffer to 512K as temporal workaround of https://github.com/microsoft/WSL/issues/5063
+    public const int BufferSize = 512 * 1024;
+
     static void Main() {
         Win32.SetConsoleCP(65001);
         Win32.SetConsoleOutputCP(65001);
@@ -60,7 +63,7 @@ static class Program {
             nLength = sizeof(Win32.SECURITY_ATTRIBUTES),
             bInheritHandle = true,
         };
-        return (Win32.CreatePipe(out var hReadPipe, out var hWritePipe, secAttrs, 0), hReadPipe, hWritePipe);
+        return (Win32.CreatePipe(out var hReadPipe, out var hWritePipe, secAttrs, BufferSize), hReadPipe, hWritePipe);
     }
 
     public unsafe static bool CreateProcess(string commandLine, IntPtr hWritePipe) {
