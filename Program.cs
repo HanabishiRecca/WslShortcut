@@ -25,7 +25,7 @@ static class Program {
         builder.Append(cmd, command.start, command.length);
 
         // Extract arguments and convert paths
-        while((arg = CommandLine.ExtractArg(cmd, arg.next)).length > 0) {
+        while((arg = CommandLine.ExtractArg(cmd, arg.next)).next > 0) {
             builder.Append(' ');
 
             if(arg.quot)
