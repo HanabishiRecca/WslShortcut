@@ -28,13 +28,14 @@ static class Program {
         while((arg = CommandLine.ExtractArg(cmd, arg.next)).next > 0) {
             builder.Append(' ');
 
-            if(arg.quot)
+            var quot = arg.quot || HasSpec(cmd, arg.start, arg.length);
+            if(quot)
                 builder.Append('"');
 
             if(!WslPath.PathToWsl(cmd, arg.start, arg.length, builder))
                 builder.Append(cmd, arg.start, arg.length);
 
-            if(arg.quot)
+            if(quot)
                 builder.Append('"');
         }
 
@@ -82,5 +83,13 @@ static class Program {
         }
 
         return result;
+    }
+
+    static bool HasSpec(string str, int index, int length) {
+        var end = index + length;
+        for(int i = index; i < end; i++)
+            if(str[i] < 0x20)
+                return true;
+        return false;
     }
 }
