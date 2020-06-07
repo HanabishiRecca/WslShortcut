@@ -71,7 +71,7 @@ static class Program {
             cb = sizeof(Win32.STARTUPINFO),
             hStdInput = Win32.GetStdHandle(-10),
             hStdOutput = hWritePipe,
-            hStdError = hWritePipe,
+            hStdError = Win32.GetStdHandle(-12),
             dwFlags = 0x100,
         };
 
