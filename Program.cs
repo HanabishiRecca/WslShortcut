@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Text;
+using static Win32;
 
 static class Program {
     // Set buffer to 512K as temporal workaround of https://github.com/microsoft/WSL/issues/5063
     public const int BufferSize = 512 * 1024;
 
     static void Main() {
-        Win32.SetConsoleCP(65001);
-        Win32.SetConsoleOutputCP(65001);
+        SetConsoleCP(65001);
+        SetConsoleOutputCP(65001);
 
         var cmd = Environment.CommandLine;
 
@@ -39,50 +40,60 @@ static class Program {
                 builder.Append('"');
         }
 
-        // Create pipe
-        var pipe = CreatePipe();
-        if(!pipe.ok)
-            throw new Exception("Failed to create pipe.");
+        PROCESS_INFORMATION proc;
 
-        // Do not inherit reading end of pipe
-        if(!Win32.SetHandleInformation(pipe.hRead, 1, 0))
-            throw new Exception("Failed to set up pipe.");
+        // Check for interactive mode
+        if(Console.IsOutputRedirected) {
+            // Create pipe
+            var pipe = OpenPipe();
+            if(!pipe.ok)
+                throw new Exception("Failed to create pipe.");
 
-        // Run WSL command
-        if(!CreateProcess(builder.ToString(), pipe.hWrite))
-            throw new Exception("Failed to launch WSL.");
+            // Do not inherit reading end of pipe
+            if(!SetHandleInformation(pipe.hRead, 1, 0))
+                throw new Exception("Failed to set up pipe.");
 
-        // Close own writing end of pipe to avoid ReadFile self locking
-        if(!Win32.CloseHandle(pipe.hWrite))
-            throw new Exception("Failed to close own writing handle.");
+            // Run WSL command
+            proc = CreateProcess(builder.ToString(), pipe.hWrite);
 
-        WslPath.ProcessOutput(pipe.hRead, Win32.GetStdHandle(-11));
+            // Close own writing end of pipe to avoid ReadFile self locking
+            if(!CloseHandle(pipe.hWrite))
+                throw new Exception("Failed to close own writing handle.");
+
+            WslPath.ProcessOutput(pipe.hRead, GetStdHandle(-11));
+        } else {
+            // Run WSL command without processing
+            proc = CreateProcess(builder.ToString(), IntPtr.Zero);
+        }
+
+        WaitForSingleObject(proc.hProcess, -1);
+
+        GetExitCodeProcess(proc.hProcess, out var exitCode);
+        Environment.ExitCode = exitCode;
     }
 
-    public unsafe static (bool ok, IntPtr hRead, IntPtr hWrite) CreatePipe() {
-        var secAttrs = new Win32.SECURITY_ATTRIBUTES {
-            nLength = sizeof(Win32.SECURITY_ATTRIBUTES),
+    public unsafe static (bool ok, IntPtr hRead, IntPtr hWrite) OpenPipe() {
+        var secAttrs = new SECURITY_ATTRIBUTES {
+            nLength = sizeof(SECURITY_ATTRIBUTES),
             bInheritHandle = true,
         };
-        return (Win32.CreatePipe(out var hReadPipe, out var hWritePipe, secAttrs, BufferSize), hReadPipe, hWritePipe);
+        return (CreatePipe(out var hReadPipe, out var hWritePipe, secAttrs, BufferSize), hReadPipe, hWritePipe);
     }
 
-    public unsafe static bool CreateProcess(string commandLine, IntPtr hWritePipe) {
-        var startupInfo = new Win32.STARTUPINFO {
-            cb = sizeof(Win32.STARTUPINFO),
-            hStdInput = Win32.GetStdHandle(-10),
+    public unsafe static PROCESS_INFORMATION CreateProcess(string commandLine, IntPtr hWritePipe) {
+        var startupInfo = (hWritePipe == IntPtr.Zero) ? new STARTUPINFO() :
+        new STARTUPINFO {
+            cb = sizeof(STARTUPINFO),
+            hStdInput = GetStdHandle(-10),
             hStdOutput = hWritePipe,
-            hStdError = Win32.GetStdHandle(-12),
+            hStdError = GetStdHandle(-12),
             dwFlags = 0x100,
         };
 
-        var result = Win32.CreateProcessW(null, commandLine, null, null, true, 0, null, null, startupInfo, out var procInfo);
-        if(result) {
-            Win32.CloseHandle(procInfo.hThread);
-            Win32.CloseHandle(procInfo.hProcess);
-        }
+        if(!CreateProcessW(null, commandLine, null, null, true, 0, null, null, startupInfo, out var procInfo))
+            throw new Exception("Failed to launch WSL.");
 
-        return result;
+        return procInfo;
     }
 
     static bool HasSpec(string str, int index, int length) {

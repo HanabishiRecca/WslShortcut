@@ -31,6 +31,12 @@ static class Win32 {
     [DllImport(kernel32, SetLastError = true)]
     public static extern bool SetConsoleOutputCP(uint wCodePageID);
 
+    [DllImport(kernel32, SetLastError = true)]
+    public static extern int WaitForSingleObject(IntPtr hHandle, int dwMilliseconds);
+
+    [DllImport(kernel32, SetLastError = true)]
+    public static extern bool GetExitCodeProcess(IntPtr hProcess, out int lpExitCode);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct SECURITY_ATTRIBUTES {
         public int nLength;
