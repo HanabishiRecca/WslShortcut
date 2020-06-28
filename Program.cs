@@ -22,7 +22,7 @@ static class Program {
             return;
 
         var builder = new StringBuilder(cmd.Length);
-        builder.Append("wsl.exe ");
+        builder.Append("wsl.exe -e ");
         builder.Append(cmd, command.start, command.length);
 
         // Extract arguments and convert paths
