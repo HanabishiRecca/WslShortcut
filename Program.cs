@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text;
 using static Win32;
 
@@ -32,14 +32,13 @@ static class Program {
 
             builder.Append(' ');
 
-            var quot = arg.quot || HasSpec(cmd, arg.start, arg.length);
-            if(quot)
+            if(arg.quot)
                 builder.Append('"');
 
             if(!WslPath.PathToWsl(cmd, arg.start, arg.length, builder))
                 builder.Append(cmd, arg.start, arg.length);
 
-            if(quot)
+            if(arg.quot)
                 builder.Append('"');
         }
 
@@ -97,13 +96,5 @@ static class Program {
             throw new Exception("Failed to launch WSL.");
 
         return procInfo;
-    }
-
-    static bool HasSpec(string str, int index, int length) {
-        var end = index + length;
-        for(int i = index; i < end; i++)
-            if(str[i] < 0x20)
-                return true;
-        return false;
     }
 }
