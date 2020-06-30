@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using static Win32;
 
@@ -27,6 +27,9 @@ static class Program {
 
         // Extract arguments and convert paths
         while((arg = CommandLine.ExtractArg(cmd, arg.next)).next > 0) {
+            if(arg.length == 0)
+                continue;
+
             builder.Append(' ');
 
             var quot = arg.quot || HasSpec(cmd, arg.start, arg.length);
